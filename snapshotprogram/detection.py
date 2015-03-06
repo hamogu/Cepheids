@@ -33,10 +33,9 @@ from astropy.table import Table, Column
 from astropy.stats import median_absolute_deviation as mad
 from astropy.modeling.models import Gaussian2D
 from astropy.convolution.utils import discretize_model
-
+from astropy.nddata.utils import overlap_slices
 
 import photutils
-import imageutils
 
 # ##### MASKS and SPIKES ######
 
@@ -154,6 +153,15 @@ class Wrap_all_pix2world(object):
     def all_world2pix(self, ra, dec):
         x, y =  self.wcs.all_world2pix(ra, dec, 0)
         return x - self.xm + self.halfwidth, y - self.ym + self.halfwidth
+
+    def reinsert_image(self, smallimage):
+        '''for plotting purposes, return image with zeors on eahc side
+        so that WCS works for AplPy.
+        '''
+        image = np.zeros((self.header['NAXIS1'], self.header['NAXIS2']))
+        image[self.xm - self.halfwidth : self.xm + self.halfwidth + 1,
+              self.ym - self.halfwidth : self.ym + self.halfwidth + 1] = smallimage
+        self.data = image
 
 
 def read_images(filelist, halfwidth):
@@ -302,8 +310,8 @@ def fit_sources(image1d, psfbase, shape, normperim, medianim, mastermask,
         #         influence the PSF fit.
         newmask = deepcopy(mastermask).reshape(shape)
         for source in sources:
-            sl_x, sl_y, temp1, temp2 = imageutils.array_utils._get_slices(shape, [9,9], [source['xcen'], source['ycen']])
-            newmask[sl_x, sl_y] = True
+            sl, temp = overlap_slices(shape, [9,9], [source['xcentroid'], source['ycentroid']])
+            newmask[sl[0], sl[1]] = True
         newmask = newmask.flatten()
 
         psf_coeff = psf_from_projection(image1d[~(newmask[~mastermask])],
@@ -322,7 +330,17 @@ def fit_sources(image1d, psfbase, shape, normperim, medianim, mastermask,
         # psf_gaussian.fixed['sigma'] = False
         # psf_gaussian.fixed['x_0'] = False
         # psf_gaussian.fixed['y_0'] = False
-        fluxes_gaussian = photutils.psf.psf_photometry(imag, sources['xcen', 'ycen'], psf_gaussian)
+        fluxes_gaussian = photutils.psf.psf_photometry(imag, sources['xcentroid', 'ycentroid'], psf_gaussian)
+
+        '''Estimate flux of Gaussian PSF from A and sigma.
+
+        Should be part of photutils in a more clever (analytic) implementation.
+        As long as it's missing there, but in this crutch here.
+        '''
+        x, y = np.mgrid[-3:3, -4:4]
+        amp2flux = np.sum(psf_gaussian.evaluate(x, y, 1, 1, 0, 1.8))  # 1.8 hard-coded above
+        fluxes_gaussian.add_column(Column(name='flux_fit', data=amp2flux * fluxes_gaussian['amplitude_fit']))
+
         return fluxes_gaussian, imag, scaled_im
 
 
@@ -455,25 +473,24 @@ def coosys(target, coord, length=1.2, color='g'):
                  color=color, weight='bold', ha='center', va='center')
 
 
-def plot_gallery(title, images, targets, n_col=3, n_row=2, sources={'id': np.array([None])}, arrowlength=0.5, color='g'):
-    plt.figure(figsize=(2.1 * n_col, 2.1 * n_row))
+def plot_gallery(title, images, targets, n_col=5, n_row=7,
+                 sources={'id': np.array([None])}, arrowlength=0.6, color='g'):
+    plt.figure(figsize=(7, 10))
     plt.suptitle(title, size=16)
     for i in range(images.shape[2]):
         comp = images[:, :, i]
         plt.subplot(n_row, n_col, i + 1)
-        plt.imshow(comp, cmap=plt.cm.gray, interpolation='nearest', vmin=np.percentile(comp,5), vmax=np.percentile(comp, 99))
+        plt.imshow(comp, cmap=plt.cm.gray, interpolation='nearest',
+                   vmin=np.percentile(comp, 1), vmax=np.percentile(comp, 99),
+                   origin='lower')
         plt.xticks(())
         plt.yticks(())
-        plt.text(5,5, targname(targets[i].targname), color=color, weight='bold')
-        coosys(targets[i], (targets[i].halfwidth * 1.7, 20), length=arrowlength,
-               color=color)
-
-        ind = (sources['id'] == i)
-        if ind.sum() > 0:
+        plt.title(targname(targets[i].targname))
+        coosys(targets[i], (targets[i].halfwidth * 1.6, 20),
+               length=arrowlength, color=color)
+        ind = (sources['name'] == targets[i].targname)
+        if ind.sum()> 0:
             # currently apertures cannot be a table, but that will hopefully improve
             apertures = photutils.CircularAperture(zip(sources['x_0_fit'][ind], sources['y_0_fit'][ind]), r=5.)
             apertures.plot(color='red', lw=3.)
-            # plt.gca().add_patch(mpl.patches.Circle(brightest[0], radius, color='red',
-            #                      fill=False, lw=1.5))
-
-    plt.subplots_adjust(0.01, 0.05, 0.99, 0.93, 0.04, 0.)
+    plt.subplots_adjust(0.01, 0.01, 0.99, 0.92, 0.02, 0.25)

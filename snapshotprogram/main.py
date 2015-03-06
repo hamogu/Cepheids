@@ -8,7 +8,7 @@ from astropy.table import Column, MaskedColumn, vstack
 
 import detection
 
-# outdir = '/data/guenther/Cepheids/mask'
+outdir = '/melkor/d1/guenther/projects/Cepheids/HSTsnapshot/'
 # fitslist = glob('/data/cracker/etingle/Cepheids/*/?????????_drz.fits')
 fitslist = glob('/melkor/d1/guenther/processing/Cepheids/PSFsubtr/?????????_drz.fits')
 
@@ -44,6 +44,10 @@ fluxes.add_column(MaskedColumn(flux2magF621M(fluxes['flux_fit']), 'mag_fit'))
 fluxes.add_column(Column(['F621M'] * len(fluxes), 'filter'))
 #detection.plot_gallery('PSF subtr. - linear scale', imout, 10, 7, sources=fluxes)
 #detection.plot_gallery('PSF subtr. - funny scale', scaledout, 10, 7, sources=fluxes)
+# Get rid of negative fluxes. They must be fit artifacts
+# Investigate later where they come from.
+fluxes = fluxes[~fluxes['mag_fit'].mask]
+
 
 images845, targets845 = detection.read_images(F845Mfiles, halfwidth)
 fluxes845, imout845, scaledout845 = detection.photometryloop(images845, targets845, **daofindkwargs)
@@ -51,6 +55,9 @@ fluxes845.add_column(MaskedColumn(flux2magF845M(fluxes845['flux_fit']), 'mag_fit
 fluxes845.add_column(Column(['F845M'] * len(fluxes845), 'filter'))
 #detection.plot_gallery('PSF subtr. - linear scale', imouts845, 10, 7, sources=fluxes845)
 #detection.plot_gallery('PSF subtr. - funny scale', scaledout845, 10, 7, sources=fluxes845)
+fluxes845 = fluxes845[~fluxes845['mag_fit'].mask]
+
+
 
 fl = vstack([fluxes, fluxes845])
 fl.sort(['name', 'x_0_fit'])
@@ -59,7 +66,7 @@ fl.sort(['name', 'x_0_fit'])
 # Still need to check manually for objects with detections in both filters
 # to see if those describe the same object.
 # fl = fl[np.isfinite(fl['mag_fit'])]
-bothbands = np.array([((i in (fl['id'])) and (i in (fluxes845['id']))) for i in fl['id']])
+bothbands = np.array([((i in (fluxes['id'])) and (i in (fluxes845['id']))) for i in fl['id']])
 
 
 for c in ['x_0_fit', 'y_0_fit', 'r', 'PA', 'mag_fit']:
@@ -99,38 +106,15 @@ is just an artifact of the fitting procedure or if there really are two sources.
 # but we might want a proper function here
 # Or I just let Nancy do it by hand...
 
+detection.plot_gallery('PSF subtr. - F621M', imout[:,:,35:], targets[35:], 5,7, sources=fluxes[35:],color='r', arrowlength=0.5)
+plt.savefig(outdir + 'F621M_part2.png')
+detection.plot_gallery('PSF subtr. - F621M', imout[:,:,:35], targets[:35], 5,7, sources=fluxes[:35],color='r', arrowlength=0.5)
+plt.savefig(outdir + 'F621M_part1.png')
 
-def plot_gallery(title, images, targets, n_col=5, n_row=7,
-                 sources={'id': np.array([None])}, arrowlength=0.6, color='g'):
-    plt.figure(figsize=(7, 10))
-    plt.suptitle(title, size=16)
-    for i in range(images.shape[2]):
-        comp = images[:, :, i]
-        plt.subplot(n_row, n_col, i + 1)
-        plt.imshow(comp, cmap=plt.cm.gray, interpolation='nearest',
-                   vmin=np.percentile(comp, 1), vmax=np.percentile(comp, 99))
-        plt.xticks(())
-        plt.yticks(())
-        plt.title(detection.targname(targets[i].targname))
-        detection.coosys(targets[i], (targets[i].halfwidth * 1.6, 20),
-                         length=arrowlength, color=color)
-        ind = (sources['name'] == targets[i].targname)
-        if ind.sum()> 0:
-            # currently apertures cannot be a table, but that will hopefully improve
-            apertures = photutils.CircularAperture(zip(sources['x_0_fit'][ind], sources['y_0_fit'][ind]), r=5.)
-            apertures.plot(color='red', lw=3.)
-    plt.subplots_adjust(0.01, 0.01, 0.99, 0.92, 0.02, 0.25)
-
-
-plot_gallery('PSF subtr. - F621M', imout[:,:,35:], targets[35:], 5,7, sources=fluxes[35:],color='r', arrowlength=0.5)
-plt.savefig('F621M_part2.png')
-plot_gallery('PSF subtr. - F621M', imout[:,:,:35], targets[:35], 5,7, sources=fluxes[:35],color='r', arrowlength=0.5)
-plt.savefig('F621M_part1.png')
-
-plot_gallery('PSF subtr. - F845M', imout845[:,:,:35], targets845[:35], 5,7, sources=fluxes845[:35],color='r', arrowlength=0.5)
-plt.savefig('F845M_part1.png')
-plot_gallery('PSF subtr. - F845M', imdout845[:,:,35:], targets845[35:], 5,7, sources=fluxes845[35:],color='r', arrowlength=0.5)
-plt.savefig('F845M_part2.png')
+detection.plot_gallery('PSF subtr. - F845M', imout845[:,:,:35], targets845[:35], 5,7, sources=fluxes845[:35],color='r', arrowlength=0.5)
+plt.savefig(outdir + 'F845M_part1.png')
+detection.plot_gallery('PSF subtr. - F845M', imout845[:,:,35:], targets845[35:], 5,7, sources=fluxes845[35:],color='r', arrowlength=0.5)
+plt.savefig(outdir + 'F845M_part2.png')
 
 
 # ########### SIMULATIONS ###################
@@ -229,3 +213,37 @@ Next plans:
 
 - Looking at the images we are pretty close to the noise limit, but we could go crazy and implement a LOCI algorithm. http://iopscience.iop.org/0004-637X/660/1/770/fulltext/  - np.linalg.solve
 '''
+
+
+
+
+# #### for some manual tests
+''' aplpy plots are not perfect (I run in to problems trying to make subplot
+with aplpy, but at least the "where is north" question should have been
+debugged there well enough.
+So, this little routine helped me debug the orientation of my images and
+my north vectors.
+'''
+
+import aplpy
+
+
+def plot_aplpy(title, image, target, sources={'id': np.array([None])}):
+        target.reinsert_image(image)
+        hdu = fits.PrimaryHDU(target.data)
+        hdu.header = target.header
+
+        af = aplpy.FITSFigure(hdu)
+        af.show_colorscale(vmin=1., vmax=np.max(target.data), smooth=None, stretch='log')
+
+        af.add_label(0.1, 0.9, detection.targname(target.targname), relative=True,
+                     color='r', weight='bold')
+
+        ind = (sources['id'] == i)
+        if ind.sum() > 0:
+            af.show_circles(sources[ind]['ra'], sources[ind]['dec'], 0.0001, color='r')
+        #af.canvas.draw()
+        af.recenter(target.header['CRVAL1'], target.header['CRVAL2'], 0.0007)
+        af.add_grid()
+        return af
+
