@@ -17,6 +17,7 @@ F621Mfiles = np.array([f for f in fitslist if (fits.getval(f, 'FILTER') == 'F621
 F621Mnames = [fits.getval(f, 'TARGNAME') for f in F621Mfiles]
 F621Mfiles = F621Mfiles[np.argsort(F621Mnames)]
 
+
 # F845Mfiles = [f for f in fitslist if 'test' not in f and (fits.getval(f, 'FILTER')=='F845M') and 'scripts' not in f]
 F845Mfiles = np.array([f for f in fitslist if (fits.getval(f, 'FILTER') == 'F845M')])
 F845Mnames = [fits.getval(f, 'TARGNAME') for f in F845Mfiles]
@@ -41,7 +42,7 @@ daofindkwargs = {'fwhm': 1.5, 'threshold': 7, 'roundlo': -0.8, 'roundhi': 0.8}
 images, targets = detection.read_images(F621Mfiles, halfwidth)
 fluxes, imout, scaledout = detection.photometryloop(images, targets, **daofindkwargs)
 fluxes.add_column(MaskedColumn(flux2magF621M(fluxes['flux_fit']), 'mag_fit'))
-fluxes.add_column(Column(['F621M'] * len(fluxes), 'filter'))
+fluxes.add_column(MaskedColumn(['F621M'] * len(fluxes), 'filter'))
 #detection.plot_gallery('PSF subtr. - linear scale', imout, 10, 7, sources=fluxes)
 #detection.plot_gallery('PSF subtr. - funny scale', scaledout, 10, 7, sources=fluxes)
 # Get rid of negative fluxes. They must be fit artifacts
@@ -246,4 +247,32 @@ def plot_aplpy(title, image, target, sources={'id': np.array([None])}):
         af.recenter(target.header['CRVAL1'], target.header['CRVAL2'], 0.0007)
         af.add_grid()
         return af
+
+
+
+AXCIR = targets[5]
+AXCIR.reinsert_image(imout[:, :, 5])
+hdu = fits.PrimaryHDU(AXCIR.data)
+hdu.header = AXCIR.header
+af = aplpy.FITSFigure(hdu, figsize=(6,5))
+af.show_colorscale(vmid=-40,vmin=-30, vmax=np.max(AXCIR.data), smooth=None, stretch='log')
+#af.show_colorscale(vmin=1, vmax=np.percentile(imout[:,:,5],99), smooth=None, stretch='log')
+af.set_title(detection.targname(AXCIR.targname))
+
+ind = (fluxes['name'] == 'AX-CIR')
+if ind.sum() > 0:
+    af.show_circles(fluxes[ind]['ra'], fluxes[ind]['dec'], 0.00007, color='r', linewidth=4)
+
+raceph, decceph = AXCIR.all_pix2world(50,50)
+af.show_markers([raceph], [decceph], color='b', linewidth=30, marker='+')
+af.set_theme("publication")
+af.recenter(AXCIR.header['CRVAL1'], AXCIR.header['CRVAL2'], 0.0005)
+af.add_grid()
+af.grid.set_color('k')
+af.grid.set_linewidth(2)
+from astropy import units as u
+af.add_scalebar(1 * u.arcsecond)
+af.scalebar.set_label('1 arcsec')
+af.scalebar.set_color('k')
+af.scalebar.set_linewidth(3)
 

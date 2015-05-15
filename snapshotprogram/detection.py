@@ -29,7 +29,7 @@ from skimage.morphology import convex_hull_image
 
 import astropy
 from astropy.io import fits
-from astropy.table import Table, Column
+from astropy.table import Table, Column, MaskedColumn
 from astropy.stats import median_absolute_deviation as mad
 from astropy.modeling.models import Gaussian2D
 from astropy.convolution.utils import discretize_model
@@ -147,8 +147,8 @@ class Wrap_all_pix2world(object):
         self.targname = self.header0['TARGNAME']
 
     def all_pix2world(self, x, y):
-        return self.wcs.all_pix2world(x + self.xm - self.halfwidth,
-                                      y + self.ym - self.halfwidth, 0)
+        return self.wcs.all_pix2world(x + self.ym - self.halfwidth,
+                                      y + self.xm - self.halfwidth, 0)
 
     def all_world2pix(self, ra, dec):
         x, y =  self.wcs.all_world2pix(ra, dec, 0)
@@ -339,7 +339,7 @@ def fit_sources(image1d, psfbase, shape, normperim, medianim, mastermask,
         '''
         x, y = np.mgrid[-3:3, -4:4]
         amp2flux = np.sum(psf_gaussian.evaluate(x, y, 1, 1, 0, 1.8))  # 1.8 hard-coded above
-        fluxes_gaussian.add_column(Column(name='flux_fit', data=amp2flux * fluxes_gaussian['amplitude_fit']))
+        fluxes_gaussian.add_column(MaskedColumn(name='flux_fit', data=amp2flux * fluxes_gaussian['amplitude_fit']))
 
         return fluxes_gaussian, imag, scaled_im
 
@@ -474,8 +474,9 @@ def coosys(target, coord, length=1.2, color='g'):
 
 
 def plot_gallery(title, images, targets, n_col=5, n_row=7,
-                 sources={'id': np.array([None])}, arrowlength=0.6, color='g'):
-    plt.figure(figsize=(7, 10))
+                 sources={'id': np.array([None])}, arrowlength=0.6, color='g',
+                 figsize=(7, 10)):
+    plt.figure(figsize=figsize)
     plt.suptitle(title, size=16)
     for i in range(images.shape[2]):
         comp = images[:, :, i]
