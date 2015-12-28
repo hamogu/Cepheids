@@ -24,7 +24,7 @@ from copy import deepcopy
 import numpy as np
 from scipy import ndimage, stats
 import matplotlib.pyplot as plt
-from skimage import filter as skfilter
+from skimage import filters as skfilter
 from skimage.morphology import convex_hull_image
 
 import astropy
