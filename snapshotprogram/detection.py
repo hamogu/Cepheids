@@ -155,7 +155,7 @@ class Wrap_all_pix2world(object):
         return x - self.xm + self.halfwidth, y - self.ym + self.halfwidth
 
     def reinsert_image(self, smallimage):
-        '''for plotting purposes, return image with zeors on eahc side
+        '''for plotting purposes, return image with zeros on each side
         so that WCS works for AplPy.
         '''
         image = np.zeros((self.header['NAXIS1'], self.header['NAXIS2']))
@@ -206,9 +206,10 @@ def apply_normmask(fimages, normperim=None, medianim=None, mastermask=None):
     if mastermask is None:
         mastermask = np.max(fimages.mask, axis=1)
     if normperim is None:
-        normperim = np.median(fimages[~mastermask, :], axis=0)
+        normperim = np.ma.median(fimages[~mastermask, :], axis=0)
     if medianim is None:
         medianim = np.ma.median(fimages, axis=1)
+        medianim = medianim / np.ma.median(medianim)
 
     fimages = fimages / normperim[None, :]
     fimages = fimages / medianim[:, None]
@@ -474,7 +475,7 @@ def coosys(target, coord, length=1.2, color='g'):
 
 
 def plot_gallery(title, images, targets, n_col=5, n_row=7,
-                 sources={'id': np.array([None])}, arrowlength=0.6, color='g',
+                 sources={'name': np.array([None])}, arrowlength=0.6, color='g',
                  figsize=(7, 10)):
     plt.figure(figsize=figsize)
     plt.suptitle(title, size=16)
