@@ -9,16 +9,13 @@ from astropy.table import Column, MaskedColumn, vstack
 import detection
 
 outdir = '/melkor/d1/guenther/projects/Cepheids/HSTsnapshot/'
-# fitslist = glob('/data/cracker/etingle/Cepheids/*/?????????_drz.fits')
 fitslist = glob('/melkor/d1/guenther/processing/Cepheids/PSFsubtr/?????????_drz.fits')
 
-# F621Mfiles = [f for f in fitslist if 'test' not in f and (fits.getval(f, 'FILTER')=='F621M')]
 F621Mfiles = np.array([f for f in fitslist if (fits.getval(f, 'FILTER') == 'F621M')])
 F621Mnames = [fits.getval(f, 'TARGNAME') for f in F621Mfiles]
 F621Mfiles = F621Mfiles[np.argsort(F621Mnames)]
 
 
-# F845Mfiles = [f for f in fitslist if 'test' not in f and (fits.getval(f, 'FILTER')=='F845M') and 'scripts' not in f]
 F845Mfiles = np.array([f for f in fitslist if (fits.getval(f, 'FILTER') == 'F845M')])
 F845Mnames = [fits.getval(f, 'TARGNAME') for f in F845Mfiles]
 F845Mfiles = F845Mfiles[np.argsort(F845Mnames)]
@@ -276,3 +273,30 @@ af.scalebar.set_label('1 arcsec')
 af.scalebar.set_color('k')
 af.scalebar.set_linewidth(3)
 
+
+# Experimenting with different PSF fitting...
+
+images, targets = detection.read_images(F621Mfiles, halfwidth)
+masked_images = np.ma.array(images)
+
+for i in range(70):
+    threshold = 0.6 * np.max(images[:,:,i])
+    masked_images[masked_images[:,:,i] > threshold, i] = np.ma.masked
+
+fimages, normperim, medianim, mastermask = detection.apply_normmask(masked_images.reshape((101*101,-1)), mastermask=np.zeros(101*101, dtype=bool))
+imout = np.zeros_like(fimages)
+
+for i in range(fimages.shape[1]):
+        print "working on image {0}".format(i)
+        otherpsfs = np.delete(np.arange(fimages.shape[1]), i)
+        psfbase = fimages[:, otherpsfs]
+        psfsubobject = psfsubclass(fimages[:,i].reshape((101,101)), psfbase.reshape((101,101,-1)))
+        psf = psfsubobject.fit_psf()
+        imout[:, i] = fimages[:,i] - psf
+
+imag = detection.remove_normmask(imout, normperim, medianim, mastermask).reshape((101,101,70))
+
+
+
+detection.plot_gallery('PSF subtr. - F621M', imag[:,:,35:], targets[35:], 5,7, color='r', arrowlength=0.5)
+plt.savefig(outdir + 'F621M_part2.png')

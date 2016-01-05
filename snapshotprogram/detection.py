@@ -7,10 +7,6 @@ at this point because
    still change significantly,
  - some properties of the observations are hardcoded (e.g. the angle of the
    diffraction spikes and the read-out streak),
- - there are some workaround for shortcomings of current imutils (e.g.
-   class Wrap_all_pix2world is needed because there is no simple way to
-   extract a subimage and adjust the WCS accordingly) that might be fixed
-   soon.
 
 Most interesting for generalization is probably the PSF fit using the template
 library, but this would require more general testing, more general parameters
@@ -31,75 +27,11 @@ from astropy.stats import median_absolute_deviation as mad
 from astropy.modeling.models import Gaussian2D
 from astropy.convolution.utils import discretize_model
 from astropy.nddata.utils import overlap_slices
+from astropy.nddata import Cutout2D
 
 import photutils
 
-# ##### MASKS and SPIKES ######
-
-
-
-
-
-
-
 # ### IMAGES AND SCALING #####
-
-
-class Wrap_all_pix2world(object):
-    '''Work-around required when cutting fits images
-
-    So far, astropy has not implemented a proper way to select a subset
-    of a fits image and keep the WCS intact. This is in the works.
-    Until that time, we use this simple wrapper the keeps a copy of the
-    WCS and just shifts (x,y) coordinates so that we can call the
-    all_pix2world on the original WCS.
-
-    Note that we use this wrapper only to keep the relevant header, but not
-    the image data itself for performance reasons.
-    '''
-    def __init__(self, filename, xm, ym, halfwidth):
-        self.filename = filename
-        self.header = fits.getheader(filename, 1)
-        self.header0 = fits.getheader(filename, 0)
-        self.wcs = astropy.wcs.WCS(self.header)
-        self.xm = xm
-        self.ym = ym
-        self.halfwidth = halfwidth
-        self.targname = self.header0['TARGNAME']
-
-    def all_pix2world(self, x, y):
-        return self.wcs.all_pix2world(x + self.ym - self.halfwidth,
-                                      y + self.xm - self.halfwidth, 0)
-
-    def all_world2pix(self, ra, dec):
-        x, y =  self.wcs.all_world2pix(ra, dec, 0)
-        return x - self.xm + self.halfwidth, y - self.ym + self.halfwidth
-
-    def reinsert_image(self, smallimage):
-        '''for plotting purposes, return image with zeros on each side
-        so that WCS works for AplPy.
-        '''
-        image = np.zeros((self.header['NAXIS1'], self.header['NAXIS2']))
-        image[self.xm - self.halfwidth : self.xm + self.halfwidth + 1,
-              self.ym - self.halfwidth : self.ym + self.halfwidth + 1] = smallimage
-        self.data = image
-
-
-def read_images(filelist, halfwidth):
-    '''Read files, make header wrappers for WCS'''
-    images = np.zeros((2 * halfwidth + 1, 2 * halfwidth + 1, len(filelist)))
-    targets = []
-
-    for i, f in enumerate(filelist):
-        image = fits.getdata(f)
-        xm, ym = center_from_spikes(image)
-        targets.append(Wrap_all_pix2world(f, xm, ym, halfwidth))
-        xm = np.int(xm + 0.5)
-        ym = np.int(ym + 0.5)
-        images[:, :, i] = image[xm - halfwidth : xm+halfwidth + 1,
-                                ym - halfwidth : ym+halfwidth + 1]
-    return images, targets
-
 
 def apply_normmask(fimages, normperim=None, medianim=None, mastermask=None):
     '''Normalizes the flattened images
@@ -167,23 +99,6 @@ def prepare_images(images):
 
 
 # ####### PSF AND FITTING ######
-
-
-def psf_from_projection(image1d, psfbase):
-    '''solve a linear algebra system for the best PSF
-
-    Parameters
-    ----------
-    image1d : array in 1 dim
-    psfbase : array in [M,N]
-        M = number of pixels in flattened image
-        N = number of images that form the space of potential PSFs
-    '''
-    a = np.dot(psfbase.T, psfbase)
-    b = np.dot(psfbase.T, image1d)
-    x = np.linalg.solve(a, b)
-    return x
-
 
 def fit_sources(image1d, psfbase, shape, normperim, medianim, mastermask,
                 threshold=12, **kwargs):
