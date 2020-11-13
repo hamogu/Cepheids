@@ -12,5 +12,5 @@ y = 100 - 3 + np.random.rand(200) * 6
 
 
 fake_loop(x, y,
-          (mag2flux(11.87, 'F621M'), mag2flux(11., 'F845M')),
+          (mag2flux(11.91, 'F621M'), mag2flux(11.04, 'F845M')),
           200, 'U-AQL', i_inserted=42)

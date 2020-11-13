@@ -56,12 +56,12 @@ def fake_loop(xin, yin, fluxin, n, outname, i_inserted=None):
         y0 = yin if np.isscalar(yin) else yin[j]
         flux = (fluxin[0] if np.isscalar(fluxin[0]) else fluxin[0][j],
                 fluxin[1] if np.isscalar(fluxin[1]) else fluxin[1][j])
-        i, fake621, mednorm_ins621, red_ins621 = insert_fake_fit(x0, y0,
+        i, i_src1, fake621, mednorm_ins621, red_ins621 = insert_fake_fit(x0, y0,
                                                                  flux[0],
                                                                  stars621,
                                                                  *specs621,
                                                                  i_inserted=i_inserted)
-        i, fake845, mednorm_ins845, red_ins845 = insert_fake_fit(x0, y0,
+        i, i_src2, fake845, mednorm_ins845, red_ins845 = insert_fake_fit(x0, y0,
                                                                  flux[1],
                                                                  stars845,
                                                                  *specs845,
@@ -75,6 +75,9 @@ def fake_loop(xin, yin, fluxin, n, outname, i_inserted=None):
             src_recovered['yin'] = y0
             src_recovered['f621in'] = flux[0]
             src_recovered['f845in'] = flux[1]
+            src_recovered['i_fake'] = i
+            src_recovered['i_src621'] = i_src1
+            src_recovered['i_src845'] = i_src2
             src.append(src_recovered)
 
         fakeindex = ['FAKE_{}'.format(j)]
@@ -88,6 +91,10 @@ def fake_loop(xin, yin, fluxin, n, outname, i_inserted=None):
             sherpaout['yin'] = y0
             sherpaout['f621in'] = flux[0]
             sherpaout['f845in'] = flux[1]
+            sherpaout['i_fake'] = i
+            sherpaout['i_src621'] = i_src1
+            sherpaout['i_src845'] = i_src2
+
             fakeout.append(sherpaout)
     fakeoutt = vstack(fakeout)
     srct = vstack(src)

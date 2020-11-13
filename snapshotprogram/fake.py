@@ -32,21 +32,23 @@ def insert_any_fake_source(imagelist, srclist, x0, y0, flux, **kwargs):
     select_image : int
         Index of the image where the source was inserted. Use this to remove
         the image with the new source from the PSF base list.
+    select_src : int
+        Index of the source from srclist that was inserted
     '''
     select_image = np.random.randint(imagelist.shape[-1])
     image = imagelist[:, :, select_image].copy()
     select_src = np.random.randint(len(srclist))
     src = srclist[select_src].data
-    return insert_fake_source(image, src, x0, y0, flux, **kwargs), select_image
+    return insert_fake_source(image, src, x0, y0, flux, **kwargs), select_image, select_src
 
 
 def insert_fake_fit(x0, y0, flux, stars, arr, base, normperim, medianim,
                     i_inserted=None, r_opt_mask=5):
     if i_inserted is None:
-        fake, i_inserted = insert_any_fake_source(np.atleast_3d(arr),
+        fake, i_inserted, i_src = insert_any_fake_source(np.atleast_3d(arr),
                                                   stars, x0, y0, flux)
     else:
-        fake, temp = insert_any_fake_source(arr[:, :, [i_inserted]].copy(),
+        fake, temp, i_src = insert_any_fake_source(arr[:, :, [i_inserted]].copy(),
                                             stars, x0, y0, flux)
 
     median_norm_inserted = fake / normperim[i_inserted] / medianim
@@ -58,4 +60,4 @@ def insert_fake_fit(x0, y0, flux, stars, arr, base, normperim, medianim,
     outim = insertedfitter.remove_psf()
 
     reduced_inserted = outim  * normperim[i_inserted] * medianim
-    return i_inserted, fake, median_norm_inserted, reduced_inserted
+    return i_inserted, i_src, fake, median_norm_inserted, reduced_inserted

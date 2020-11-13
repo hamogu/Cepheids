@@ -12,20 +12,46 @@ datadir = '/melkor/d1/guenther/downdata/HST/CepMASTfull/'
 # stars not too far from the center but outside of the Cepheid PSF and not on
 # any of the diffraction spikes.
 
-prflist = [['ibg402010_drz.fits', 612, 209],
-           ['ibg402010_drz.fits', 1007, 951],
-           ['ibg402010_drz.fits', 488, 705],
-           ['ibg403010_drz.fits', 597, 385],
-           ['ibg405010_drz.fits', 570, 701],
-           ['ibg455010_drz.fits', 263, 444],
-           ['ibg456010_drz.fits', 530, 696],
-           ['ibg456010_drz.fits', 549, 462],
-           ['ibg456010_drz.fits', 860, 408],
-           ['ibg456010_drz.fits', 911, 115],
-           ['ibg465010_drz.fits', 588, 723],
-           ['ibg471010_drz.fits', 600, 685],
-           ['ibg471010_drz.fits', 892, 511],
-]
+prflist = [
+    ['ibg405010_drz.fits', 340,  38],
+    ['ibg416010_drz.fits', 443, 215],
+    ['ibg418010_drz.fits', 112, 945],
+    ['ibg418010_drz.fits', 112, 945],
+    ['ibg422010_drz.fits', 895, 319],
+    ['ibg426010_drz.fits', 385,  93],
+    ['ibg436010_drz.fits', 342, 877],
+    ['ibg438010_drz.fits', 416, 401],
+    ['ibg440010_drz.fits', 211, 337],
+    ['ibg443010_drz.fits', 359, 288],
+    ['ibg444010_drz.fits', 328, 345],
+    ['ibg444010_drz.fits', 725, 723],
+    ['ibg446010_drz.fits', 276, 500],
+    ['ibg453010_drz.fits', 812, 845],
+    ['ibg453010_drz.fits', 333, 188],
+    ['ibg455010_drz.fits', 263, 444],
+    ['ibg456010_drz.fits', 529, 696],
+    ['ibg458010_drz.fits', 161, 806],
+    ['ibg459010_drz.fits', 374, 166],
+    ['ibg465010_drz.fits', 588, 723],
+    ['ibg468010_drz.fits', 150, 508],
+    ['ibg471010_drz.fits', 600, 685],
+    ['ibg471010_drz.fits', 892, 511],
+    ]
+
+#prflist = [['ibg402010_drz.fits', 612, 209],
+#           ['ibg402010_drz.fits', 1007, 951],
+#           ['ibg402010_drz.fits', 488, 705], # GAIA bad
+#           ['ibg403010_drz.fits', 597, 385],
+#           ['ibg405010_drz.fits', 570, 701], # GAIA bad
+#           ['ibg455010_drz.fits', 263, 444],
+#           ['ibg456010_drz.fits', 530, 696],
+#           ['ibg456010_drz.fits', 549, 462], # GAIA bad
+#           ['ibg456010_drz.fits', 860, 408],
+#           ['ibg456010_drz.fits', 911, 115],
+#           ['ibg465010_drz.fits', 588, 723],
+#           ['ibg471010_drz.fits', 600, 685],
+#           ['ibg471010_drz.fits', 892, 511],
+#]
 
 # -1 because the above positions are measured in ds9, which counts from (1,1)
 # while the python code counts from (0,0)

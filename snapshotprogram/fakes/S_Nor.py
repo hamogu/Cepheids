@@ -10,10 +10,10 @@ phi = 2 * np. pi  * np.random.rand(200)
 
 def index(phi):
     '''Close to diffraction spike or bleed column?'''
-    return((np.mod(phi, np.pi) < 0.1) |
-           (np.mod(phi, np.pi) > 3) |
-           (np.abs(phi - np.pi * 3 / 2) < 0.1) |
-           (np.abs(np.mod(phi, np.pi / 2) - np.pi / 4) < 0.1))
+    return((np.mod(phi, np.pi) < 0.2) |
+           (np.mod(phi, np.pi) > 2.9) |
+           (np.abs(phi - np.pi * 3 / 2) < 0.2) |
+           (np.abs(np.mod(phi, np.pi / 2) - np.pi / 4) < 0.25))
 
 ind = index(phi)
 while ind.sum() > 0:
